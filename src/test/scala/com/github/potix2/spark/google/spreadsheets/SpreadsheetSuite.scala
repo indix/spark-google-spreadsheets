@@ -13,9 +13,12 @@
  */
 package com.github.potix2.spark.google.spreadsheets
 
-import java.io.File
+import java.io.{BufferedReader, File, FileInputStream, FileReader}
+import java.security.PrivateKey
+import java.util.Base64
 
 import com.github.potix2.spark.google.spreadsheets.SparkSpreadsheetService.SparkSpreadsheetContext
+import com.github.potix2.spark.google.spreadsheets.util.Credentials
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SQLContext}
@@ -24,9 +27,18 @@ import org.scalatest.{BeforeAndAfter, FlatSpec}
 import scala.util.Random
 
 class SpreadsheetSuite extends FlatSpec with BeforeAndAfter {
-  private val serviceAccountId = "53797494708-ds5v22b6cbpchrv2qih1vg8kru098k9i@developer.gserviceaccount.com"
-  private val testCredentialPath = "src/test/resources/spark-google-spreadsheets-test-eb7b191d1e1d.p12"
-  private val TEST_SPREADSHEET_ID = "1H40ZeqXrMRxgHIi3XxmHwsPs2SgVuLUFbtaGcqCAk6c"
+  private val serviceAccountId = "shreya@sample2-167011.iam.gserviceaccount.com"
+  private val TEST_SPREADSHEET_NAME = "SpreadsheetSuite"
+  private val TEST_SPREADSHEET_ID = "1O37-7jvjI9q7rzNWlXWcDXo_xwt6Alk_Bc9cXz0VyYw"
+  val testCredentialPath = "/Users/shrechak/Downloads/credentials2.p12"
+
+  private val key: PrivateKey =  Credentials.getPrivateKeyFromFile(
+    new FileInputStream(new File("/Users/shrechak/Downloads/credentials2.p12")))
+
+  private val context: SparkSpreadsheetService.SparkSpreadsheetContext =
+    SparkSpreadsheetService.SparkSpreadsheetContext(serviceAccountId, key)
+  private val spreadsheet: SparkSpreadsheetService.SparkSpreadsheet =
+    context.findSpreadsheet(TEST_SPREADSHEET_ID)
 
   private var sqlContext: SQLContext = _
   before {
@@ -45,7 +57,7 @@ class SpreadsheetSuite extends FlatSpec with BeforeAndAfter {
   }
 
   def withNewEmptyWorksheet(testCode:(String) => Any): Unit = {
-    implicit val spreadSheetContext = SparkSpreadsheetService(serviceAccountId, new File(testCredentialPath))
+    implicit val spreadSheetContext = SparkSpreadsheetService(serviceAccountId,key)
     val spreadsheet = SparkSpreadsheetService.findSpreadsheet(TEST_SPREADSHEET_ID)
     spreadsheet.foreach { s =>
       val workSheetName = Random.alphanumeric.take(16).mkString
@@ -60,7 +72,7 @@ class SpreadsheetSuite extends FlatSpec with BeforeAndAfter {
   }
 
   def withEmptyWorksheet(testCode:(String) => Any): Unit = {
-    implicit val spreadSheetContext = SparkSpreadsheetService(serviceAccountId, new File(testCredentialPath))
+    implicit val spreadSheetContext = SparkSpreadsheetService(serviceAccountId, key)
     val workSheetName = Random.alphanumeric.take(16).mkString
     try {
       testCode(workSheetName)
@@ -75,7 +87,7 @@ class SpreadsheetSuite extends FlatSpec with BeforeAndAfter {
   it should "behave as a DataFrame" in {
     val results = sqlContext.read
       .option("serviceAccountId", serviceAccountId)
-      .option("credentialPath", testCredentialPath)
+      .option("privateKey", testCredentialPath)
       .spreadsheet(s"$TEST_SPREADSHEET_ID/case1")
       .select("col1")
       .collect()
@@ -92,7 +104,7 @@ class SpreadsheetSuite extends FlatSpec with BeforeAndAfter {
 
     val results = sqlContext.read
       .option("serviceAccountId", serviceAccountId)
-      .option("credentialPath", testCredentialPath)
+      .option("privateKey", testCredentialPath)
       .schema(schema)
       .spreadsheet(s"$TEST_SPREADSHEET_ID/case1")
       .select("col1", "col2", "col3")
@@ -118,12 +130,12 @@ class SpreadsheetSuite extends FlatSpec with BeforeAndAfter {
     withEmptyWorksheet { workSheetName =>
       personsDF.write
         .option("serviceAccountId", serviceAccountId)
-        .option("credentialPath", testCredentialPath)
+        .option("privateKey", testCredentialPath)
         .spreadsheet(s"$TEST_SPREADSHEET_ID/$workSheetName")
 
       val result = sqlContext.read
         .option("serviceAccountId", serviceAccountId)
-        .option("credentialPath", testCredentialPath)
+        .option("privateKey", testCredentialPath)
         .spreadsheet(s"$TEST_SPREADSHEET_ID/$workSheetName")
         .collect()
 
@@ -141,7 +153,7 @@ class SpreadsheetSuite extends FlatSpec with BeforeAndAfter {
            |CREATE TEMPORARY TABLE people
            |(id int, firstname string, lastname string)
            |USING com.github.potix2.spark.google.spreadsheets
-           |OPTIONS (path "$TEST_SPREADSHEET_ID/$worksheetName", serviceAccountId "$serviceAccountId", credentialPath "$testCredentialPath")
+           |OPTIONS (path "$TEST_SPREADSHEET_ID/$worksheetName", serviceAccountId "$serviceAccountId", privateKey "$testCredentialPath")
        """.stripMargin.replaceAll("\n", " "))
 
       assert(sqlContext.sql("SELECT * FROM people").collect().size == 0)
@@ -153,7 +165,7 @@ class SpreadsheetSuite extends FlatSpec with BeforeAndAfter {
       s"""
          |CREATE TEMPORARY TABLE SpreadsheetSuite
          |USING com.github.potix2.spark.google.spreadsheets
-         |OPTIONS (path "$TEST_SPREADSHEET_ID/case2", serviceAccountId "$serviceAccountId", credentialPath "$testCredentialPath")
+         |OPTIONS (path "$TEST_SPREADSHEET_ID/case2", serviceAccountId "$serviceAccountId", privateKey "$testCredentialPath")
        """.stripMargin.replaceAll("\n", " "))
 
     assert(sqlContext.sql("SELECT id, firstname, lastname FROM SpreadsheetSuite").collect().size == 10)
@@ -166,14 +178,14 @@ class SpreadsheetSuite extends FlatSpec with BeforeAndAfter {
            |CREATE TEMPORARY TABLE accesslog
            |(id string, firstname string, lastname string, email string, country string, ipaddress string)
            |USING com.github.potix2.spark.google.spreadsheets
-           |OPTIONS (path "$TEST_SPREADSHEET_ID/$worksheetName", serviceAccountId "$serviceAccountId", credentialPath "$testCredentialPath")
+           |OPTIONS (path "$TEST_SPREADSHEET_ID/$worksheetName", serviceAccountId "$serviceAccountId", privateKey "$testCredentialPath")
        """.stripMargin.replaceAll("\n", " "))
 
       sqlContext.sql(
         s"""
            |CREATE TEMPORARY TABLE SpreadsheetSuite
            |USING com.github.potix2.spark.google.spreadsheets
-           |OPTIONS (path "$TEST_SPREADSHEET_ID/case2", serviceAccountId "$serviceAccountId", credentialPath "$testCredentialPath")
+           |OPTIONS (path "$TEST_SPREADSHEET_ID/case2", serviceAccountId "$serviceAccountId", privateKey "$testCredentialPath")
        """.stripMargin.replaceAll("\n", " "))
 
       sqlContext.sql("INSERT OVERWRITE TABLE accesslog SELECT * FROM SpreadsheetSuite")
@@ -194,12 +206,12 @@ class SpreadsheetSuite extends FlatSpec with BeforeAndAfter {
     withEmptyWorksheet { workSheetName =>
       aDF.write
         .option("serviceAccountId", serviceAccountId)
-        .option("credentialPath", testCredentialPath)
+        .option("privateKey", testCredentialPath)
         .spreadsheet(s"$TEST_SPREADSHEET_ID/$workSheetName")
 
       val result = sqlContext.read
         .option("serviceAccountId", serviceAccountId)
-        .option("credentialPath", testCredentialPath)
+        .option("privateKey", testCredentialPath)
         .spreadsheet(s"$TEST_SPREADSHEET_ID/$workSheetName")
         .collect()
 

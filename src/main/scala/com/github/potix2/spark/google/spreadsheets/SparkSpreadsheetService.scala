@@ -13,8 +13,8 @@
  */
 package com.github.potix2.spark.google.spreadsheets
 
-import java.io.File
 import java.net.URL
+import java.security.PrivateKey
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential.Builder
@@ -32,23 +32,23 @@ import scala.collection.JavaConverters._
 object SparkSpreadsheetService {
   private val SPREADSHEET_URL = new URL("https://spreadsheets.google.com/feeds/spreadsheets/private/full")
   private val scopes = List(SheetsScopes.SPREADSHEETS)
-  private val APP_NAME = "spark-google-spreadsheets-1.0.0"
+  private val APP_NAME = "sample2-167011"
   private val HTTP_TRANSPORT: NetHttpTransport = GoogleNetHttpTransport.newTrustedTransport()
   private val JSON_FACTORY: JacksonFactory = JacksonFactory.getDefaultInstance()
 
-  case class SparkSpreadsheetContext(serviceAccountId: String, p12File: File) {
-    private val credential = authorize(serviceAccountId, p12File)
+  case class SparkSpreadsheetContext(serviceAccountId: String, privateKey: PrivateKey) {
+    private val credential = authorize(serviceAccountId, privateKey)
     lazy val service =
       new Sheets.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
         .setApplicationName(APP_NAME)
         .build()
 
-    private def authorize(serviceAccountId: String, p12File: File): GoogleCredential = {
+    private def authorize(serviceAccountId: String, privateKey: PrivateKey): GoogleCredential = {
       val credential = new Builder()
         .setTransport(HTTP_TRANSPORT)
         .setJsonFactory(JSON_FACTORY)
         .setServiceAccountId(serviceAccountId)
-        .setServiceAccountPrivateKeyFromP12File(p12File)
+        .setServiceAccountPrivateKey(privateKey)
         .setServiceAccountScopes(scopes)
         .build()
 
@@ -238,10 +238,10 @@ object SparkSpreadsheetService {
    * create new context of spareadsheets for spark
     *
     * @param serviceAccountId
-   * @param p12File
+   * @param privateKey
    * @return
    */
-  def apply(serviceAccountId: String, p12File: File) = SparkSpreadsheetContext(serviceAccountId, p12File)
+  def apply(serviceAccountId: String, privateKey: PrivateKey) = SparkSpreadsheetContext(serviceAccountId, privateKey)
 
   /**
    * find a spreadsheet by name
