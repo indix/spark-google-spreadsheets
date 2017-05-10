@@ -13,10 +13,9 @@
  */
 package com.github.potix2.spark.google.spreadsheets
 
-import java.io.{BufferedReader, File, FileInputStream, FileReader}
-import java.util.Base64
+import java.io.{File, FileInputStream}
 
-import com.github.potix2.spark.google.spreadsheets.util.Credentials
+import com.github.potix2.spark.google.spreadsheets.util.{Credentials, S3Config}
 import org.apache.spark.sql.sources.{BaseRelation, CreatableRelationProvider, RelationProvider, SchemaRelationProvider}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
@@ -58,10 +57,21 @@ class DefaultSource extends RelationProvider with SchemaRelationProvider with Cr
   private[spreadsheets] def createSpreadsheetContext(parameters: Map[String, String]) = {
     val serviceAccountId = parameters.getOrElse("serviceAccountId",
       sys.error("'serviceAccountId' must be specified for the google API account."))
-    val privateKeyId = parameters.getOrElse("privateKey",
-      sys.error("'privateKey' must be specified for the google API account."))
-    SparkSpreadsheetService(serviceAccountId, Credentials.getPrivateKeyFromFile(
-      new FileInputStream(new File(privateKeyId))))
+
+    val credsS3Config = parameters.get("credsS3Config")
+    val privateKeyFile = parameters.get("privateKeyFile")
+
+    if (credsS3Config.isDefined) {
+      SparkSpreadsheetService(serviceAccountId,
+        Credentials.getCredentialsFromS3File(S3Config(credsS3Config.get)))
+          }
+    else if (privateKeyFile.isDefined) {
+      SparkSpreadsheetService(serviceAccountId,
+        Credentials.getPrivateKeyFromInputStream(new FileInputStream(new File(privateKeyFile.get))))
+    }
+    else {
+      sys.error("'credsS3Config' or 'privateKeyFile' must be specified for the google API account.")
+    }
   }
 
   private[spreadsheets] def createRelation(sqlContext: SQLContext,

@@ -1,13 +1,10 @@
 package com.github.potix2.spark.google.spreadsheets.util
 
-import java.io.InputStream
 import java.math.BigDecimal
-import java.security.{KeyStore, PrivateKey}
 import java.sql.{Date, Timestamp}
 import java.text.NumberFormat
 import java.util.Locale
 
-import com.google.api.client.util.SecurityUtils
 import org.apache.spark.sql.types._
 
 import scala.util.Try
@@ -36,17 +33,5 @@ object TypeCast {
       case _ => throw new RuntimeException(s"Unsupported type: ${castType.typeName}")
 
     }
-  }
-}
-
-object Credentials {
-
-  def getPrivateKeyFromFile(filePath: InputStream): PrivateKey = {
-    SecurityUtils.loadPrivateKeyFromKeyStore(
-      SecurityUtils.getPkcs12KeyStore(),
-      filePath,
-      "notasecret",
-      "privatekey",
-      "notasecret")
   }
 }
