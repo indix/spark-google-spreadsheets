@@ -2,11 +2,13 @@ name := "spark-google-spreadsheets"
 
 organization := "com.github.potix2"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.11.11"
 
-crossScalaVersions := Seq("2.10.6", "2.11.8")
+crossScalaVersions := Seq("2.10.6", "2.11.11")
 
-version := "0.5.0-SNAPSHOT"
+val gitRevision = sys.env.getOrElse("GO_REVISION", "git rev-parse HEAD".!!).trim.take(6)
+val buildVersion = sys.env.getOrElse("GO_PIPELINE_LABEL", "1.0-SNAPSHOT-" + gitRevision)
+version := s"$buildVersion-indix"
 
 spName := "potix2/spark-google-spreadsheets"
 
@@ -29,7 +31,8 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.1" % "test",
   ("com.google.api-client" % "google-api-client" % "1.22.0").
     exclude("com.google.guava", "guava-jdk5"),
-  "com.google.oauth-client" % "google-oauth-client-jetty" % "1.22.0",
+  ("com.google.oauth-client" % "google-oauth-client-jetty" % "1.22.0").
+    exclude("org.mortbay.jetty", "jetty"),
   "com.google.apis" % "google-api-services-sheets" % "v4-rev18-1.22.0"
 )
 
@@ -56,11 +59,10 @@ publishArtifact in Test := false
 pomIncludeRepository := { _ => false }
 
 publishTo := {
-  val nexus = "https://oss.sonatype.org/"
   if (version.value.endsWith("SNAPSHOT"))
-    Some("snapshots" at nexus + "content/repositories/snapshots")
+    Some("Indix Snapshot Artifactory" at "http://artifacts.indix.tv:8081/artifactory/libs-snapshot-local")
   else
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+    Some("Indix Release Artifactory"  at "http://artifacts.indix.tv:8081/artifactory/libs-release-local")
 }
 
 pomExtra := (
