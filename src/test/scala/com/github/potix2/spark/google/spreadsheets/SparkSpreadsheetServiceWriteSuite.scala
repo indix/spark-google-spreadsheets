@@ -13,23 +13,31 @@
  */
 package com.github.potix2.spark.google.spreadsheets
 
+import java.io.{File, FileInputStream}
+import java.security.PrivateKey
+import java.util.Base64
+
 import com.github.potix2.spark.google.spreadsheets.SparkSpreadsheetService.SparkSpreadsheet
-import com.google.api.services.sheets.v4.model.{ExtendedValue, CellData, RowData}
+import com.github.potix2.spark.google.spreadsheets.util.Credentials
+import com.google.api.services.sheets.v4.model.{CellData, ExtendedValue, RowData}
 import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.scalatest.{BeforeAndAfter, FlatSpec}
 
 import scala.collection.JavaConverters._
 
 class SparkSpreadsheetServiceWriteSuite extends FlatSpec with BeforeAndAfter {
-  private val serviceAccountId = "53797494708-ds5v22b6cbpchrv2qih1vg8kru098k9i@developer.gserviceaccount.com"
-  private val testCredentialPath = "src/test/resources/spark-google-spreadsheets-test-eb7b191d1e1d.p12"
-  private val TEST_SPREADSHEET_NAME = "WriteSuite"
-  private val TEST_SPREADSHEET_ID = "163Ja2OWUephWjIa-jpwTlvGcg8EJwCFCfxrF7aI117s"
+  private val serviceAccountId = "test-359@test-creds-167111.iam.gserviceaccount.com"
+  private val testCredentialPath = "src/test/resources/test-creds-7db3916c0235.p12"
+  private val TEST_SPREADSHEET_NAME = "SpreadsheetSuite"
+  private val TEST_SPREADSHEET_ID = "1q9eV4faHjcYB-xn1OAz31ByK7Ntr2ShWHQ3LgbTjNTE"
+
+  private val key: PrivateKey =  Credentials.getPrivateKeyFromInputStream(
+    new FileInputStream(new File(testCredentialPath)))
 
   private val context: SparkSpreadsheetService.SparkSpreadsheetContext =
-    SparkSpreadsheetService.SparkSpreadsheetContext(serviceAccountId, new java.io.File(testCredentialPath))
+    SparkSpreadsheetService.SparkSpreadsheetContext(serviceAccountId, key)
 
-  var spreadsheet: SparkSpreadsheet = null
+  var spreadsheet: SparkSpreadsheet = _
   var worksheetName: String = ""
 
   def definedSchema: StructType = {

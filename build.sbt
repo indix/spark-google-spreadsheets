@@ -31,9 +31,10 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.1" % "test",
   ("com.google.api-client" % "google-api-client" % "1.22.0").
     exclude("com.google.guava", "guava-jdk5"),
-  ("com.google.oauth-client" % "google-oauth-client-jetty" % "1.22.0").
-    exclude("org.mortbay.jetty", "jetty"),
-  "com.google.apis" % "google-api-services-sheets" % "v4-rev18-1.22.0"
+  "com.google.oauth-client" % "google-oauth-client-jetty" % "1.22.0",
+  "com.google.apis" % "google-api-services-sheets" % "v4-rev18-1.22.0",
+  "net.java.dev.jets3t" % "jets3t" % "0.9.4",
+  "io.spray" %% "spray-json" % "1.3.2"
 )
 
 libraryDependencies ++= Seq(
