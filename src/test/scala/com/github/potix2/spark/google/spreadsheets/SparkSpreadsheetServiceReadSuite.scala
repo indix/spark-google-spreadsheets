@@ -16,7 +16,7 @@ package com.github.potix2.spark.google.spreadsheets
 import java.io.{File, FileInputStream}
 import java.security.PrivateKey
 
-import com.github.potix2.spark.google.spreadsheets.util.{Credentials}
+import com.github.potix2.spark.google.spreadsheets.util.Credentials
 import org.scalatest.{BeforeAndAfter, FlatSpec}
 
 class SparkSpreadsheetServiceReadSuite extends FlatSpec with BeforeAndAfter {
@@ -59,5 +59,6 @@ class SparkSpreadsheetServiceReadSuite extends FlatSpec with BeforeAndAfter {
       "country" -> "Burundi",
       "ipaddress" -> "241.162.49.104"))
   }
+
 
 }

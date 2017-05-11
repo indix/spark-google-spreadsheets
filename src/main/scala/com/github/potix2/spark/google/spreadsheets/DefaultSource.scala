@@ -50,7 +50,7 @@ class DefaultSource extends RelationProvider with SchemaRelationProvider with Cr
     if (!spreadsheet.isDefined)
       throw new RuntimeException(s"no such a spreadsheet: $spreadsheetName")
 
-    spreadsheet.get.addWorksheet(worksheetName, data.schema, data.collect().toList, Util.toRowData)
+    spreadsheet.get.addWorksheet(worksheetName, data.schema, data.na.fill("null").collect().toList, Util.toRowData)
     createRelation(sqlContext, context, spreadsheetName, worksheetName, data.schema)
   }
 

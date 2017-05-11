@@ -22,6 +22,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SQLContext}
 import org.scalatest.{BeforeAndAfter, FlatSpec}
+import scala.collection.JavaConversions._
 
 import scala.util.Random
 
@@ -125,7 +126,9 @@ class SpreadsheetSuite extends FlatSpec with BeforeAndAfter{
   }
 
   "A DataFrame" should "be saved as a sheet" in new PersonDataFrame {
+
     import com.github.potix2.spark.google.spreadsheets._
+
     withEmptyWorksheet { workSheetName =>
       personsDF.write
         .option("serviceAccountId", serviceAccountId)
@@ -217,5 +220,18 @@ class SpreadsheetSuite extends FlatSpec with BeforeAndAfter{
       assert(result.size == 3)
       assert(result(0).getString(0) == "1")
     }
+  }
+
+  "Util" should "convert all datatypes to corresponding strings" in {
+    val personsSchema2 = StructType(List(
+      StructField("id", IntegerType, true),
+      StructField("firstname", ArrayType(MapType(StringType, StringType, true), true), true),
+      StructField("something", MapType(StringType, ArrayType(StringType, true), true), true),
+      StructField("lastname", StringType, true)))
+    val personsRows2 = Seq(Row(1, Array(Map("1"->"1"), Map("2"->"2")), Map("s" -> Array("s", "S")), "Cole"))
+    val personsRDD2 = sqlContext.sparkContext.parallelize(personsRows2)
+    sqlContext.createDataFrame(personsRDD2, personsSchema2).toJSON
+    val personsDF2 = sqlContext.createDataFrame(personsRDD2, personsSchema2).na.fill("nullValue").collect().toList
+    assert(Util.typeConverter(IntegerType, personsRows2.head.get(0)).getNumberValue == 1.0)
   }
 }

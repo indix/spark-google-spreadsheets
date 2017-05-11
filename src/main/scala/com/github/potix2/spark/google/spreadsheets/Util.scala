@@ -1,8 +1,8 @@
 package com.github.potix2.spark.google.spreadsheets
 
-import com.google.api.services.sheets.v4.model.{ExtendedValue, CellData, RowData}
+import com.google.api.services.sheets.v4.model.{CellData, ExtendedValue, RowData}
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.{DataTypes, StructType}
+import org.apache.spark.sql.types._
 
 import scala.collection.JavaConverters._
 
@@ -16,17 +16,33 @@ object Util {
           new CellData()
             .setUserEnteredValue(
               f.dataType match {
-                case DataTypes.StringType => new ExtendedValue().setStringValue(row.getString(i))
-                case DataTypes.LongType => new ExtendedValue().setNumberValue(row.getLong(i).toDouble)
-                case DataTypes.IntegerType => new ExtendedValue().setNumberValue(row.getInt(i).toDouble)
-                case DataTypes.FloatType => new ExtendedValue().setNumberValue(row.getFloat(i).toDouble)
-                case DataTypes.BooleanType => new ExtendedValue().setBoolValue(row.getBoolean(i))
-                case DataTypes.DateType => new ExtendedValue().setStringValue(row.getDate(i).toString)
-                case DataTypes.ShortType => new ExtendedValue().setNumberValue(row.getShort(i).toDouble)
-                case DataTypes.TimestampType => new ExtendedValue().setStringValue(row.getTimestamp(i).toString)
+                case DataTypes.TimestampType => typeConverter(f.dataType, row.getTimestamp(i).toString)
+                case _ => typeConverter(f.dataType, row.get(i))
               }
             )
         }.toList.asJava
       )
 
+  def typeConverter(dataType: DataType, value: Any): ExtendedValue = (dataType,value) match {
+    case (_, null) | (NullType, _) => null
+    case (StringType, v: String) => new ExtendedValue().setStringValue(v)
+    case (TimestampType, v: java.sql.Timestamp) =>  new ExtendedValue().setStringValue(v.toString)
+    case (IntegerType, v: Int) =>  new ExtendedValue().setNumberValue(v.toDouble)
+    case (ShortType, v: Short) =>  new ExtendedValue().setNumberValue(v.toDouble)
+    case (FloatType, v: Float) =>  new ExtendedValue().setNumberValue(v.toDouble)
+    case (DoubleType, v: Double) =>  new ExtendedValue().setNumberValue(v.toDouble)
+    case (LongType, v: Long) =>  new ExtendedValue().setNumberValue(v.toDouble)
+    case (DecimalType(), v: Decimal) => new ExtendedValue().setStringValue(v.toJavaBigDecimal.toPlainString)
+    case (ByteType, v: Byte) => new ExtendedValue().setNumberValue(v.toDouble)
+    case (BinaryType, v: Array[Byte]) => new ExtendedValue().setStringValue(v.toString)
+    case (BooleanType, v: Boolean) => new ExtendedValue().setBoolValue(v)
+    case (DateType, v: Int) => new ExtendedValue().setStringValue(v.toString)
+    case (ArrayType(ty, _), v: Array[_]) =>
+      new ExtendedValue().setStringValue(v.map(x => typeConverter(ty, x)).toList.mkString("[",",","]"))
+    case (MapType(key, value, _), v: Map[_,_]) =>
+      new ExtendedValue().setStringValue(v.map(s => s"{${typeConverter(key, s._1)}:${typeConverter(value, s._2)}}").toList.mkString(","))
+    case (StructType(ty), v: Object) => {
+      new ExtendedValue().setStringValue(v.toString)
+    }
+  }
 }
