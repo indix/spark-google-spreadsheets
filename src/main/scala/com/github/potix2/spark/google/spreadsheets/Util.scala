@@ -5,6 +5,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 
 import scala.collection.JavaConverters._
+import scala.collection.TraversableOnce
 
 object Util {
   def convert(schema: StructType, row: Row): Map[String, Object] =
@@ -23,26 +24,35 @@ object Util {
         }.toList.asJava
       )
 
-  def typeConverter(dataType: DataType, value: Any): ExtendedValue = (dataType,value) match {
-    case (_, null) | (NullType, _) => null
-    case (StringType, v: String) => new ExtendedValue().setStringValue(v)
-    case (TimestampType, v: java.sql.Timestamp) =>  new ExtendedValue().setStringValue(v.toString)
-    case (IntegerType, v: Int) =>  new ExtendedValue().setNumberValue(v.toDouble)
-    case (ShortType, v: Short) =>  new ExtendedValue().setNumberValue(v.toDouble)
-    case (FloatType, v: Float) =>  new ExtendedValue().setNumberValue(v.toDouble)
-    case (DoubleType, v: Double) =>  new ExtendedValue().setNumberValue(v.toDouble)
-    case (LongType, v: Long) =>  new ExtendedValue().setNumberValue(v.toDouble)
-    case (DecimalType(), v: Decimal) => new ExtendedValue().setStringValue(v.toJavaBigDecimal.toPlainString)
-    case (ByteType, v: Byte) => new ExtendedValue().setNumberValue(v.toDouble)
-    case (BinaryType, v: Array[Byte]) => new ExtendedValue().setStringValue(v.toString)
-    case (BooleanType, v: Boolean) => new ExtendedValue().setBoolValue(v)
-    case (DateType, v: Int) => new ExtendedValue().setStringValue(v.toString)
-    case (ArrayType(ty, _), v: Array[_]) =>
-      new ExtendedValue().setStringValue(v.map(x => typeConverter(ty, x)).toList.mkString("[",",","]"))
-    case (MapType(key, value, _), v: Map[_,_]) =>
-      new ExtendedValue().setStringValue(v.map(s => s"{${typeConverter(key, s._1)}:${typeConverter(value, s._2)}}").toList.mkString(","))
-    case (StructType(ty), v: Object) => {
-      new ExtendedValue().setStringValue(v.toString)
+  def typeConverter(dataType: DataType, value: Any): ExtendedValue =  {
+    def getValue(dataType: DataType, value: Any): Any = (dataType,value) match {
+      case (_, null) | (NullType, _) => null
+      case (StringType, v: String) => v
+      case (TimestampType, v: java.sql.Timestamp) =>  v.toString
+      case (IntegerType, v: Int) =>  v.toDouble
+      case (ShortType, v: Short) =>  v.toDouble
+      case (FloatType, v: Float) =>  v.toDouble
+      case (DoubleType, v: Double) =>  v.toDouble
+      case (LongType, v: Long) =>  v.toDouble
+      case (DecimalType(), v: Decimal) => v.toJavaBigDecimal.toPlainString
+      case (ByteType, v: Byte) => v.toDouble
+      case (BinaryType, v: Array[Byte]) => v.mkString("")
+      case (BooleanType, v: Boolean) => v
+      case (DateType, v: Int) => v.toString
+      case (ArrayType(ty, _), v: TraversableOnce[_]) =>
+        v.map(x => getValue(ty, x)).toList.mkString("[",",","]")
+      case (MapType(key, value, _), v: Map[_,_]) =>
+        v.map(s => s"{${getValue(key, s._1)}:${getValue(value, s._2)}}").toList.mkString(",")
+      case (StructType(ty), v: Object) => {
+        v.toString
+      }
+    }
+
+    getValue(dataType, value) match{
+      case null => new ExtendedValue().setStringValue(null)
+      case x: String => new ExtendedValue().setStringValue(x)
+      case x: Double => new ExtendedValue().setNumberValue(x.toDouble)
+      case x: Boolean => new ExtendedValue().setBoolValue(x)
     }
   }
 }
