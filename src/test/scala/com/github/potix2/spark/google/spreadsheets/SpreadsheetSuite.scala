@@ -17,12 +17,11 @@ import java.io.{File, FileInputStream}
 import java.security.PrivateKey
 
 import com.github.potix2.spark.google.spreadsheets.SparkSpreadsheetService.SparkSpreadsheetContext
-import com.github.potix2.spark.google.spreadsheets.util.{Credentials, S3Config}
+import com.github.potix2.spark.google.spreadsheets.util.Credentials
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SQLContext}
 import org.scalatest.{BeforeAndAfter, FlatSpec}
-import scala.collection.JavaConversions._
 
 import scala.util.Random
 

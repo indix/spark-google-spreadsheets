@@ -6,8 +6,7 @@ scalaVersion := "2.11.11"
 
 crossScalaVersions := Seq("2.10.6", "2.11.11")
 
-val gitRevision = sys.env.getOrElse("GO_REVISION", "git rev-parse HEAD".!!).trim.take(6)
-val buildVersion = sys.env.getOrElse("GO_PIPELINE_LABEL", "1.0-SNAPSHOT-" + gitRevision)
+val buildVersion = sys.env.getOrElse("GO_PIPELINE_LABEL", "1.0-SNAPSHOT")
 version := s"$buildVersion-indix"
 
 spName := "potix2/spark-google-spreadsheets"
@@ -34,7 +33,7 @@ libraryDependencies ++= Seq(
   ("com.google.oauth-client" % "google-oauth-client-jetty" % "1.22.0").
     exclude("org.mortbay.jetty", "servlet-api"),
   "com.google.apis" % "google-api-services-sheets" % "v4-rev18-1.22.0",
-  "net.java.dev.jets3t" % "jets3t" % "0.9.4",
+  "com.amazonaws" % "aws-java-sdk-s3" % "1.11.127",
   "io.spray" %% "spray-json" % "1.3.2"
 )
 
