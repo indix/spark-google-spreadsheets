@@ -17,7 +17,7 @@ spIncludeMaven := true
 
 spIgnoreProvided := true
 
-sparkVersion := "2.0.2"
+sparkVersion := "2.3.3"
 
 val testSparkVersion = settingKey[String]("The version of Spark to test against.")
 
@@ -82,11 +82,6 @@ pomExtra := (
 
 // Skip tests during assembly
 test in assembly := {}
-
-ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := {
-  if (scalaBinaryVersion.value == "2.10") false
-  else true
-}
 
 import ReleaseTransformations._
 

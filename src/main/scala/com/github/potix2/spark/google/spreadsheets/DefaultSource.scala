@@ -21,7 +21,7 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
 class DefaultSource extends RelationProvider with SchemaRelationProvider with CreatableRelationProvider {
-  final val DEFAULT_CREDENTIAL_PATH = "/etc/gdata/credential.p12"
+  final val DEFAULT_CREDENTIAL_PATH = "src/test/resources/test-creds-7db3916c0235.p12"
 
   override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]) = {
     createRelation(sqlContext, parameters, null)
@@ -55,24 +55,10 @@ class DefaultSource extends RelationProvider with SchemaRelationProvider with Cr
   }
 
   private[spreadsheets] def createSpreadsheetContext(parameters: Map[String, String]) = {
-    val serviceAccountId = parameters.getOrElse("serviceAccountId",
-      sys.error("'serviceAccountId' must be specified for the google API account."))
 
-    val credsS3BucketName = parameters.get("credsS3bucket")
-    val credsS3ObjectName =  parameters.get("credsS3object")
-    val privateKeyFile = parameters.get("privateKeyFile")
-
-    if (credsS3BucketName.isDefined && credsS3ObjectName.isDefined) {
-      SparkSpreadsheetService(serviceAccountId,
-        Credentials.getCredentialsFromS3File(credsS3BucketName.get, credsS3ObjectName.get))
-          }
-    else if (privateKeyFile.isDefined) {
-      SparkSpreadsheetService(serviceAccountId,
-        Credentials.getPrivateKeyFromInputStream(new FileInputStream(new File(privateKeyFile.get))))
-    }
-    else {
-      sys.error("'s3 config for creds' or 'privateKeyFile' must be specified for the google API account.")
-    }
+    val serviceAccountIdOption = parameters.get("serviceAccountId")
+    val credentialPath = parameters.getOrElse("credentialPath", DEFAULT_CREDENTIAL_PATH)
+    SparkSpreadsheetService(serviceAccountIdOption, new File(credentialPath))
   }
 
   private[spreadsheets] def createRelation(sqlContext: SQLContext,
